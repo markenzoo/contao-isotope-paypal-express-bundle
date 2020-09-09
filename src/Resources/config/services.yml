@@ -1,0 +1,9 @@
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+        public: false
+    
+    Markenzoo\ContaoIsotopePaypalExpressBundle\Controller\ContentElement\:
+        resource: ../../Controller/ContentElement
+        public: true

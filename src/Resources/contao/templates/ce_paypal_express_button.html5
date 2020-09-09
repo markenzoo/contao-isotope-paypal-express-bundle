@@ -1,0 +1,51 @@
+<?php 
+$this->extend('block_searchable'); 
+$GLOBALS['TL_BODY'][] = \Contao\Template::generateScriptTag('https://www.paypal.com/sdk/js?client-id=' . $this->SB_CLIENT_ID . '&currency=' . $this->order->currency);
+$GLOBALS['TL_BODY'][] = \Contao\Template::generateInlineScript("
+document.addEventListener('DOMContentLoaded', function() {
+
+    paypal.Buttons({
+
+        $this->btnStyle
+
+        createOrder: function(data, actions) {
+            return fetch('$this->createActionLink', {
+                method: 'post',
+                headers: {
+                    'content-type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+            }).then(function(res) {
+                return res.json();
+            }).then(function(data) {
+                return data.id;
+            })
+        },
+
+        onApprove: function(data) {
+            Isotope.displayBox('$this->loadMessage');
+            return fetch('$this->captureActionLink', {
+                method: 'post',
+                headers: {
+                    'content-type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify(data)
+            }).then(function(res) {
+                return res.json();
+            }).then(function(details) {
+                Isotope.hideBox();
+                window.location.href = details.href;
+            })
+        },
+
+    }).render('#$this->selector');
+
+});");
+?>
+
+<?php $this->block('content'); ?>
+    <?php if($this->hasCart): ?>
+        <div id="<?= $this->selector ?>"></div>
+    <?php endif; ?>
+<?php $this->endblock(); ?>

@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<psalm
+    totallyTyped="false"
+    errorLevel="4"
+    resolveFromConfigFile="true"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns="https://getpsalm.org/schema/config"
+    xsi:schemaLocation="https://getpsalm.org/schema/config vendor/vimeo/psalm/config.xsd"
+>
+    <projectFiles>
+        <directory name="src" />
+        <ignoreFiles>
+            <directory name="src/Resources" />
+        </ignoreFiles>
+    </projectFiles>
+    <issueHandlers>
+        <UndefinedMagicPropertyAssignment errorLevel="suppress" />
+        <UndefinedMagicPropertyFetch errorLevel="suppress" />
+    </issueHandlers>
+    <plugins>
+        <pluginClass class="Psalm\PhpUnitPlugin\Plugin"/>
+        <pluginClass class="Psalm\SymfonyPsalmPlugin\Plugin"/>
+    </plugins>
+    <stubs>
+        <file name="vendor/contao/core-bundle/src/Resources/contao/config/constants.php" />
+        <file name="vendor/contao/core-bundle/src/Resources/contao/helper/functions.php" />
+    </stubs>
+</psalm>

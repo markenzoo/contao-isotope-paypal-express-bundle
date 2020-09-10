@@ -175,16 +175,18 @@ class PaypalTransaction
         }
     }
 
-    /**
-     * Capture an order payment by passing the approved order ID as argument.
+        /**
+     * Create a new Paypal order.
      *
-     * @param mixed $orderId
+     * @param IsotopePurchasableCollection $objOrder
      *
      * @return mixed
      */
-    public function captureOrder($orderId)
+    protected function createOrder(IsotopePurchasableCollection $objOrder)
     {
-        $request = new OrdersCaptureRequest($orderId);
+        $request = new OrdersCreateRequest();
+        $request->prefer('return=representation');
+        $request->body = PaypalRequest::buildRequestBody($objOrder);
 
         $client = PayPalClient::client($this->clientId, $this->clientSecret, $this->debug);
         $response = $client->execute($request);
@@ -216,17 +218,15 @@ class PaypalTransaction
     }
 
     /**
-     * Create a new Paypal order.
+     * Capture an order payment by passing the approved order ID as argument.
      *
-     * @param IsotopePurchasableCollection $objOrder
+     * @param mixed $orderId
      *
      * @return mixed
      */
-    protected function createOrder(IsotopePurchasableCollection $objOrder)
+    public function captureOrder($orderId)
     {
-        $request = new OrdersCreateRequest();
-        $request->prefer('return=representation');
-        $request->body = PaypalRequest::buildRequestBody($objOrder);
+        $request = new OrdersCaptureRequest($orderId);
 
         $client = PayPalClient::client($this->clientId, $this->clientSecret, $this->debug);
         $response = $client->execute($request);

@@ -1,6 +1,21 @@
 <?php 
-$this->extend('block_searchable'); 
+$this->extend('block_searchable');
+
+// The following will use the module/nomodule pattern that allows to use ES2015+ JavaScript features, 
+// specifically `fetch` and `Promise`, since every browser that supports <script type="module"> also 
+// supports fetch, and Promises! 
+// See: https://philipwalton.com/articles/deploying-es2015-code-in-production-today/
+
+// Promise Polyfill for IE11
+$GLOBALS['TL_BODY'][] = '<script nomodule src="bundles/contaoisotopepaypalexpress/js/promise.polyfill.min.js"></script>';
+
+// Fetch Polyfill for IE11
+$GLOBALS['TL_BODY'][] = '<script nomodule src="bundles/contaoisotopepaypalexpress/js/fetch.polyfill.min.js"></script>';
+
+// PayPal JavaScript SDK
 $GLOBALS['TL_BODY'][] = \Contao\Template::generateScriptTag('https://www.paypal.com/sdk/js?client-id=' . $this->SB_CLIENT_ID . '&currency=' . $this->order->currency);
+
+// Render Function and Event Handlers
 $GLOBALS['TL_BODY'][] = \Contao\Template::generateInlineScript("
 document.addEventListener('DOMContentLoaded', function() {
 

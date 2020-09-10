@@ -1,12 +1,12 @@
-# Contao Isotope Paypal Express Bundle (WIP - EXPERIMENTAL !!)
+# Contao Isotope Paypal Express Bundle (WIP/EXPERIMENTAL)
 
 [![Version](http://img.shields.io/packagist/v/markenzoo/contao-isotope-paypal-express-bundle.svg?style=for-the-badge&label=Latest)](http://packagist.org/packages/markenzoo/contao-isotope-paypal-express-bundle)
 [![GitHub issues](https://img.shields.io/github/issues/markenzoo/contao-isotope-paypal-express-bundle?style=for-the-badge&logo=github)](https://github.com/markenzoo/contao-isotope-paypal-express-bundle/issues)
 [![License](http://img.shields.io/packagist/l/markenzoo/contao-isotope-paypal-express-bundle?style=for-the-badge&label=License)](http://packagist.org/packages/markenzoo/contao-isotope-paypal-express-bundle)
-[![Build Status](http://img.shields.io/travis/markenzoo/contao-isotope-paypal-express-bundle/master.svg?style=for-the-badge&logo=travis)](https://travis-ci.org/markenzoo/contao-isotope-paypal-express-bundle)
+[![Build Status](http://img.shields.io/travis/markenzoo/contao-isotope-paypal-express-bundle/main.svg?style=for-the-badge&logo=travis)](https://travis-ci.org/markenzoo/contao-isotope-paypal-express-bundle)
 [![Downloads](http://img.shields.io/packagist/dt/markenzoo/contao-isotope-paypal-express-bundle?style=for-the-badge&label=Downloads)](http://packagist.org/packages/markenzoo/contao-isotope-paypal-express-bundle)
 
-## DISCLAIMER
+## Disclaimer
 
 This is an experimental project. 
 Use it at your own risk.
@@ -18,7 +18,10 @@ We do not provide any warranty for failure or corruption in any circumstance.
 
 Provide an integration for Smart Paypment Buttons from Paypal using the [JavaScript SDK](https://developer.paypal.com/docs/checkout/integrate/#2-add-the-paypal-javascript-sdk-to-your-web-page).
 
-## TODO
+*Notice*
+Currently only digital goods with no shipping are supported.
+
+## Todo
 
  - Shipping Address
  - Billing Address 

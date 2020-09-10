@@ -72,7 +72,7 @@ class PaypalRequest
         }
 
         /**
-         * Set up the breakdoen of the total
+         * Set up the breakdown of the total
          * Since each item defines a unit amount, we have to specify
          * item_total which must equal the sum of
          * (items[].unit_amount * items[].quantity) for all items and

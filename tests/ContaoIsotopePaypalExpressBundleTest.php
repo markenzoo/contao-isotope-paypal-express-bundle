@@ -18,7 +18,7 @@ namespace Markenzoo\ContaoIsotopePaypalExpressBundle\Tests;
 use Markenzoo\ContaoIsotopePaypalExpressBundle\ContaoIsotopePaypalExpressBundle;
 use PHPUnit\Framework\TestCase;
 
-class ContaoExtendedFaqBundleTest extends TestCase
+class ContaoIsotopePaypalExpressBundleTest extends TestCase
 {
     public function testCanBeInstantiated(): void
     {

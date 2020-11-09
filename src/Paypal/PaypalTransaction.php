@@ -120,7 +120,7 @@ class PaypalTransaction
     /**
      * Notifications from Notification Center.
      *
-     * @var string
+     * @var array
      */
     protected $isoNotifications;
 
@@ -130,7 +130,7 @@ class PaypalTransaction
      * @param PaypalExpress  $objPayment
      * @param PageModel|null $objCheckoutPage
      */
-    public function __construct(IsotopePayment $objPayment, PageModel $objCheckoutPage = null, string $isoNotifications = '')
+    public function __construct(IsotopePayment $objPayment, PageModel $objCheckoutPage = null, $isoNotifications = null)
     {
         $this->clientId = $objPayment->paypal_client;
         $this->clientSecret = $objPayment->paypal_secret;
@@ -382,37 +382,37 @@ class PaypalTransaction
     }
 
     /**
-     * @param IsotopeProductCollection $objCollection
+     * @param Order $objOrder
      *
      * @return array
      */
-    protected function retrievePayment(IsotopeProductCollection $objCollection): array
+    protected function retrievePayment(Order $objOrder): array
     {
-        $paymentData = (array) StringUtil::deserialize($objCollection->payment_data, true);
+        $paymentData = (array) StringUtil::deserialize($objOrder->payment_data, true);
 
         return \array_key_exists('PAYPAL', $paymentData) ? $paymentData['PAYPAL'] : [];
     }
 
     /**
-     * @param IsotopeProductCollection $objCollection
+     * @param Order $objOrder
      * @param mixed                    $paypalData
      */
-    protected function storePayment(IsotopeProductCollection $objCollection, $paypalData): void
+    protected function storePayment(Order $objOrder, $paypalData): void
     {
-        $paymentData = (array) StringUtil::deserialize($objCollection->payment_data, true);
+        $paymentData = (array) StringUtil::deserialize($objOrder->payment_data, true);
         $paymentData['PAYPAL'] = \is_array($paypalData) ? $paypalData : json_decode(json_encode($paypalData), true);
 
-        $objCollection->payment_data = $paymentData;
-        $objCollection->save();
+        $objOrder->payment_data = $paymentData;
+        $objOrder->save();
     }
 
     /**
-     * @param IsotopeProductCollection $objCollection
+     * @param Order $objOrder
      * @param mixed                    $paypalData
      */
-    protected function storeHistory(IsotopeProductCollection $objCollection, $paypalData): void
+    protected function storeHistory(Order $objOrder, $paypalData): void
     {
-        $paymentData = (array) StringUtil::deserialize($objCollection->payment_data, true);
+        $paymentData = (array) StringUtil::deserialize($objOrder->payment_data, true);
 
         if (!\is_array($paymentData['PAYPAL_HISTORY'])) {
             $paymentData['PAYPAL_HISTORY'] = [];
@@ -420,8 +420,8 @@ class PaypalTransaction
 
         $paymentData['PAYPAL_HISTORY'][] = \is_array($paypalData) ? $paypalData : json_decode(json_encode($paypalData), true);
 
-        $objCollection->payment_data = $paymentData;
-        $objCollection->save();
+        $objOrder->payment_data = $paymentData;
+        $objOrder->save();
     }
 
     /**

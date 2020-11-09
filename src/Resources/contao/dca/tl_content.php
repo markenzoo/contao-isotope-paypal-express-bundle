@@ -14,7 +14,7 @@ declare(strict_types=1);
  */
 
 $GLOBALS['TL_DCA']['tl_content']['palettes']['paypal_express_button'] =
-    '{type_legend},type;{paypal_express_legend},paypalExpressPaymentMethod,paypalExpressCheckoutPage;{paypal_smart_buttons_legend},paypalSmartButtonColor,paypalSmartButtonShape,paypalSmartButtonSize,paypalSmartButtonLabel;{template_legend:hide},customTpl;{protected_legend:hide},protected;{expert_legend:hide},guests,cssID;{invisible_legend:hide},invisible,start,stop;'
+    '{type_legend},type;{paypal_express_legend},paypalExpressPaymentMethod,paypalExpressCheckoutPage,isoNotifications;{paypal_smart_buttons_legend},paypalSmartButtonColor,paypalSmartButtonShape,paypalSmartButtonSize,paypalSmartButtonLabel;{template_legend:hide},customTpl;{protected_legend:hide},protected;{expert_legend:hide},guests,cssID;{invisible_legend:hide},invisible,start,stop;'
 ;
 
 $GLOBALS['TL_DCA']['tl_content']['fields']['paypalExpressPaymentMethod'] = [
@@ -30,6 +30,15 @@ $GLOBALS['TL_DCA']['tl_content']['fields']['paypalExpressCheckoutPage'] = [
         'inputType' => 'pageTree',
         'eval' => ['fieldType' => 'radio', 'tl_class' => 'clr'],
         'sql' => 'blob NULL',
+];
+
+$GLOBALS['TL_DCA']['tl_content']['fields']['isoNotifications'] = [
+    'exclude' => true,
+    'inputType' => 'select',
+    'options_callback' => ['NotificationCenter\tl_module', 'getNotificationChoices'],
+    'eval' => ['multiple' => true, 'csv' => ',', 'includeBlankOption' => true, 'chosen' => true, 'tl_class' => 'clr w50'],
+    'sql' => "varchar(255) NOT NULL default ''",
+    'relation' => ['type' => 'hasOne', 'load' => 'lazy', 'table' => 'tl_nc_notification'],
 ];
 
 $GLOBALS['TL_DCA']['tl_content']['fields']['paypalSmartButtonColor'] = [

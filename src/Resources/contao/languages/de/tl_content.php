@@ -24,6 +24,7 @@ $GLOBALS['TL_LANG']['tl_content']['paypal_smart_buttons_legend'] = 'Paypal Smart
  */
 $GLOBALS['TL_LANG']['tl_content']['paypalExpressPaymentMethod'] = ['Paypal Express Bezahlungsmodul', 'Wählen Sie das dazugehörige Paypal Express Bezahlungsmodul aus.'];
 $GLOBALS['TL_LANG']['tl_content']['paypalExpressCheckoutPage'] = ['Paypal Express Checkout-Seite', 'Wählen Sie die Seite aus, zu der ein Nutzer weitergeleitet werden soll, wenn er die Bestellnug abschließt.'];
+$GLOBALS['TL_LANG']['tl_content']['isoNotifications'] = ['Benachrichtigung', 'Wählen Sie eine Benachrichtigung aus, die ausgeführt wird, wenn eine Bestellnug abgeschlossen wird.'];
 
 $GLOBALS['TL_LANG']['tl_content']['paypalSmartButtonColor'] = ['Paypal Smart Button Farbe', 'Wählen Sie die Farbe des Paypal Smart Button aus.'];
 $GLOBALS['TL_LANG']['tl_content']['paypalSmartButtonColor']['options'] = [

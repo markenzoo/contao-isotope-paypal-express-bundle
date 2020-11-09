@@ -50,7 +50,7 @@ class PaypalExpressButtonController extends AbstractContentElementController
                 $objCheckoutPage = PageModel::findById($model->paypalExpressCheckoutPage);
             }
 
-            $transaction = new PaypalTransaction($objMethod, $objCheckoutPage);
+            $transaction = new PaypalTransaction($objMethod, $objCheckoutPage, $model->isoNotifications);
             $transaction->handleRequest($objCart, $request);
         }
 

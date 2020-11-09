@@ -45,7 +45,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     'content-type': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest'
                 },
-                body: JSON.stringify(data)
+                body: JSON.stringify({
+                    orderID: data.orderID
+                })
             }).then(function(res) {
                 return res.json();
             }).then(function(details) {

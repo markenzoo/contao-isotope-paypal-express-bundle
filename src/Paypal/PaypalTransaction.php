@@ -19,7 +19,10 @@ use Contao\Input;
 use Contao\PageModel;
 use Contao\StringUtil;
 use Contao\System;
+use Isotope\Interfaces\IsotopePayment;
+use Isotope\Interfaces\IsotopeProductCollection;
 use Isotope\Interfaces\IsotopePurchasableCollection;
+use Isotope\Model\Address;
 use Isotope\Model\ProductCollection\Cart;
 use Isotope\Model\ProductCollection\Order;
 use Isotope\Module\Checkout;
@@ -108,12 +111,26 @@ class PaypalTransaction
     protected $objCheckoutPage;
 
     /**
+     * Payment method for this collection, if payment is required.
+     *
+     * @var IsotopePayment
+     */
+    protected $objPayment;
+
+    /**
+     * Notifications from Notification Center.
+     *
+     * @var string
+     */
+    protected $isoNotifications;
+
+    /**
      * Construct a new PaypalTransaction.
      *
      * @param PaypalExpress  $objPayment
      * @param PageModel|null $objCheckoutPage
      */
-    public function __construct(PaypalExpress $objPayment, PageModel $objCheckoutPage = null)
+    public function __construct(IsotopePayment $objPayment, PageModel $objCheckoutPage = null, string $isoNotifications = '')
     {
         $this->clientId = $objPayment->paypal_client;
         $this->clientSecret = $objPayment->paypal_secret;
@@ -121,6 +138,8 @@ class PaypalTransaction
         $this->logging = (bool) ($objPayment->logging);
         $this->new_order_status = $objPayment->new_order_status;
         $this->objCheckoutPage = $objCheckoutPage;
+        $this->objPayment = $objPayment;
+        $this->isoNotifications = $isoNotifications;
     }
 
     /**
@@ -151,8 +170,6 @@ class PaypalTransaction
 
         if (null === $objCart) {
             static::sendJsonResponse(['message' => self::MSG_UNDEFINED_CART], Response::HTTP_BAD_REQUEST);
-
-            return;
         }
 
         if ($objCart->isEmpty()) {
@@ -168,14 +185,33 @@ class PaypalTransaction
             break;
 
             case 'CAPTURE':
-                $this->captureTransaction($objOrder, $request);
+                ['orderID' => $orderID] = (array) json_decode((string) $request->getContent(), true);
+                $this->captureTransaction($objOrder, $orderID);
                 break;
 
             // TODO: add Steps for Authorize Flow
         }
     }
 
-        /**
+    /**
+     * Capture an order payment by passing the approved order ID as argument.
+     *
+     * @param mixed $orderID
+     *
+     * @return mixed
+     */
+    public function captureOrder($orderID)
+    {
+        $request = new OrdersCaptureRequest($orderID);
+        $request->prefer('return=representation');
+
+        $client = PayPalClient::client($this->clientId, $this->clientSecret, $this->debug);
+        $response = $client->execute($request);
+
+        return $response->result;
+    }
+
+    /**
      * Create a new Paypal order.
      *
      * @param IsotopePurchasableCollection $objOrder
@@ -189,9 +225,14 @@ class PaypalTransaction
         $request->body = PaypalRequest::buildRequestBody($objOrder);
 
         $client = PayPalClient::client($this->clientId, $this->clientSecret, $this->debug);
-        $response = $client->execute($request);
 
-        return $response->result;
+        try {
+            $response = $client->execute($request);
+
+            return $response->result;
+        } catch (\Throwable $th) {
+            return $th->getMessage();
+        }
     }
 
     /**
@@ -203,81 +244,47 @@ class PaypalTransaction
      */
     protected function createTransaction(IsotopePurchasableCollection $objOrder): void
     {
-        try {
-            /** @var object|string $response */
-            $response = $this->createOrder($objOrder);
+        /** @var object|string $response */
+        $response = $this->createOrder($objOrder);
 
-            if (\is_string($response) || $this->debug) {
-                static::sendJsonResponse($response);
-            }
-
-            static::sendJsonResponse(['id' => $response->id]);
-        } catch (\Throwable $th) {
-            static::sendJsonResponse(['message' => self::MSG_INTERNAL_SERVER_EROR], Response::HTTP_INTERNAL_SERVER_ERROR);
+        if (\is_string($response) || $this->debug) {
+            static::sendJsonResponse($response);
         }
-    }
 
-    /**
-     * Capture an order payment by passing the approved order ID as argument.
-     *
-     * @param mixed $orderId
-     *
-     * @return mixed
-     */
-    public function captureOrder($orderId)
-    {
-        $request = new OrdersCaptureRequest($orderId);
-
-        $client = PayPalClient::client($this->clientId, $this->clientSecret, $this->debug);
-        $response = $client->execute($request);
-
-        return $response->result;
+        static::sendJsonResponse(['id' => $response->id]);
     }
 
     /**
      * Capture a new Paypal Transaction.
      *
      * @param IsotopePurchasableCollection $objOrder
-     * @param Request                      $request
+     * @param mixed                        $orderID
      *
      * @return void
      */
-    protected function captureTransaction(IsotopePurchasableCollection $objOrder, Request $request): void
+    protected function captureTransaction(IsotopePurchasableCollection $objOrder, $orderID): void
     {
-        try {
-            /** @var object $orderData */
-            $orderData = json_decode((string) $request->getContent(false));
-            if (!isset($orderData->orderID) || null === $orderData->orderID || empty($orderData->orderID)) {
-                throw new \Exception();
-            }
-        } catch (\Throwable $th) {
-            static::sendJsonResponse(
-                self::MSG_INVALID_REQUEST,
-                Response::HTTP_BAD_REQUEST
-            );
-        }
-
         /**
          * capture transaction.
          *
          * @var object $paymentData
          */
-        $paymentData = $this->captureOrder($orderData->orderID);
+        $paypalData = $this->captureOrder($orderID);
 
         /**
          * include complete payment response in debug mode.
          *
          * @var object $response
          */
-        $response = $this->debug ? clone $paymentData : new \stdClass();
+        $response = $this->debug ? clone $paypalData : new \stdClass();
 
-        try {
-            // store payment information in database record
-            $this->storePayment($objOrder, $paymentData);
+        // store payment information in database record
+        $success = $this->processPayment($objOrder, $paypalData);
 
+        if ($success) {
             // redirect to success page
             $response->href = Checkout::generateUrlForStep(Checkout::STEP_COMPLETE, $objOrder, $this->objCheckoutPage);
-        } catch (\Throwable $th) {
+        } else {
             // redirect to error page
             $response->href = Checkout::generateUrlForStep(Checkout::STEP_FAILED);
         }
@@ -286,36 +293,135 @@ class PaypalTransaction
     }
 
     /**
+     * @param Order $objOrder
+     * @param mixed $paypalData
+     *
+     * @return Address
+     */
+    protected function getShippingAddress(Order $objOrder, $paypalData): Address
+    {
+        $objShippingAddress = new Address();
+
+        $objShippingAddress->pid = $objOrder->id;
+        $objShippingAddress->tstamp = time();
+        $objShippingAddress->ptable = 'tl_iso_product_collection';
+        $objShippingAddress->store_id = $objOrder->getStoreId();
+        $objShippingAddress->firstname = $paypalData->payer->name->given_name;
+        $objShippingAddress->lastname = $paypalData->payer->name->surname;
+        $objShippingAddress->email = $paypalData->payer->email_address;
+        $objShippingAddress->street_1 = $paypalData->purchase_units[0]->shipping->address->address_line_1;
+        $objShippingAddress->city = $paypalData->purchase_units[0]->shipping->address->admin_area_2;
+        $objShippingAddress->postal = $paypalData->purchase_units[0]->shipping->address->postal_code;
+        $objShippingAddress->country = strtolower($paypalData->purchase_units[0]->shipping->address->country_code);
+
+        // TODO: what does subdivision stand for? In Germany we have 'Bundesländer' but those are to long fot the database column
+        // $objShippingAddress->subdivision = $paypalData->purchase_units[0]->shipping->address->admin_area_1;
+
+        $objShippingAddress->isDefaultBilling = true;
+        $objShippingAddress->isDefaultShipping = true;
+
+        $objShippingAddress->save();
+
+        return $objShippingAddress;
+    }
+
+    /**
      * Store the Payment Information of a Request.
      *
      * @param Order $objOrder
-     * @param mixed $paymentData
+     * @param mixed $paypalData
      *
-     * @return void
+     * @return bool
      */
-    protected function storePayment(Order $objOrder, $paymentData): void
+    protected function processPayment(Order $objOrder, $paypalData): bool
     {
+        /** @var Address $objShippingAddress */
+        $objShippingAddress = $this->getShippingAddress($objOrder, $paypalData);
+
+        // Store Payment Method
+        $objOrder->setPaymentMethod($this->objPayment);
+
+        // Store Address Information
+        // TODO: use billing address - has to be activated by paypal support
+        $objOrder->setBillingAddress($objShippingAddress);
+        $objOrder->setShippingAddress($objShippingAddress);
+
         // Store Paypal Data for future reference
-        $arrPayment = (array) StringUtil::deserialize($objOrder->payment_data, true);
-        $arrPayment['PAYPAL'] = (array) $paymentData;
-        $objOrder->payment_data = $arrPayment;
+        $this->storePayment($objOrder, $paypalData);
+        $this->storeHistory($objOrder, $paypalData);
+
+        // set notifications from notification center
+        $objOrder->nc_notification = $this->isoNotifications;
 
         if (!$objOrder->checkout()) {
             /*
              * @psalm-suppress DeprecatedMethod
              */
             System::log('Checkout for Order ID "'.$objOrder->getId().'" failed', __METHOD__, TL_ERROR);
-            throw new \Exception();
+
+            return false;
         }
 
         // set paid time to now
         $objOrder->setDatePaid(time());
 
         // set new order status
-        $objOrder->updateOrderStatus($this->new_order_status);
+        if (!$objOrder->updateOrderStatus($this->new_order_status)) {
+            /*
+             * @psalm-suppress DeprecatedMethod
+             */
+            System::log('Checkout for Order ID "'.$objOrder->getId().'" failed', __METHOD__, TL_ERROR);
+
+            return false;
+        }
 
         // persist
         $objOrder->save();
+
+        return true;
+    }
+
+    /**
+     * @param IsotopeProductCollection $objCollection
+     *
+     * @return array
+     */
+    protected function retrievePayment(IsotopeProductCollection $objCollection): array
+    {
+        $paymentData = (array) StringUtil::deserialize($objCollection->payment_data, true);
+
+        return \array_key_exists('PAYPAL', $paymentData) ? $paymentData['PAYPAL'] : [];
+    }
+
+    /**
+     * @param IsotopeProductCollection $objCollection
+     * @param mixed                    $paypalData
+     */
+    protected function storePayment(IsotopeProductCollection $objCollection, $paypalData): void
+    {
+        $paymentData = (array) StringUtil::deserialize($objCollection->payment_data, true);
+        $paymentData['PAYPAL'] = \is_array($paypalData) ? $paypalData : json_decode(json_encode($paypalData), true);
+
+        $objCollection->payment_data = $paymentData;
+        $objCollection->save();
+    }
+
+    /**
+     * @param IsotopeProductCollection $objCollection
+     * @param mixed                    $paypalData
+     */
+    protected function storeHistory(IsotopeProductCollection $objCollection, $paypalData): void
+    {
+        $paymentData = (array) StringUtil::deserialize($objCollection->payment_data, true);
+
+        if (!\is_array($paymentData['PAYPAL_HISTORY'])) {
+            $paymentData['PAYPAL_HISTORY'] = [];
+        }
+
+        $paymentData['PAYPAL_HISTORY'][] = \is_array($paypalData) ? $paypalData : json_decode(json_encode($paypalData), true);
+
+        $objCollection->payment_data = $paymentData;
+        $objCollection->save();
     }
 
     /**

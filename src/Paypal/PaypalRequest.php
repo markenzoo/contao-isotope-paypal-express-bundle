@@ -36,6 +36,7 @@ class PaypalRequest
         $items = [];
         $item_total = 0;
         $tax_total = 0;
+        $discount = 0;
 
         foreach ($objCollection->getItems() as $item) {
             /*
@@ -71,6 +72,15 @@ class PaypalRequest
             $items[] = $row;
         }
 
+        foreach ($objCollection->getSurcharges() as $surcharge) {
+          if ($surcharge->total_price < 0) {
+              $discount -= $surcharge->total_price;
+              continue;
+          }
+
+          // TODO: Handle instancof ShippingSurcharge, Tax and PaymentSurcharge
+        }
+
         /**
          * Set up the breakdown of the total
          * Since each item defines a unit amount, we have to specify
@@ -91,6 +101,13 @@ class PaypalRequest
             'value' => number_format($tax_total, 2),
           ],
         ];
+
+        if ($discount > 0) {
+          $breakdown['discount'] = [
+            'currency_code' => $currency_code,
+            'value' => number_format($discount, 2),
+          ];
+        } 
 
         // TODO: add Shipping - currently only digital goods with no shipping are supported
         if ($objCollection->hasShipping()) {
